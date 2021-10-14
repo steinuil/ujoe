@@ -1,0 +1,17 @@
+{
+  "name": "rkgk",
+  "version": "0.1.0",
+  "sources": [
+    {
+      "dir": "src"
+    },
+    {
+      "dir": "tests",
+      "type": "dev"
+    }
+  ],
+  "reason": {
+    "react-jsx": 3
+  },
+  "bs-dependencies": ["@rescript/react", "rescript-webapi", "bs-fetch"]
+}

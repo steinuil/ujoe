@@ -1,0 +1,1 @@
+IrcTest.run()

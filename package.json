@@ -1,0 +1,21 @@
+{
+  "name": "ujoe",
+  "version": "1.0.0",
+  "license": "ISC",
+  "scripts": {
+    "watch": "rescript build -w -with-deps",
+    "dev": "esbuild lib/js/src/Main.js --bundle --servedir=www --outdir=www/js",
+    "test": "node lib/js/tests/TestEverything.js"
+  },
+  "devDependencies": {
+    "@babel/code-frame": "^7.15.8",
+    "esbuild": "^0.13.6",
+    "rescript": "^9.1.4"
+  },
+  "dependencies": {
+    "@rescript/react": "^0.10.3",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2",
+    "rescript-webapi": "^0.1.2"
+  }
+}
