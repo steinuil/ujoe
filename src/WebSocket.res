@@ -9,17 +9,36 @@ type t
 @send external closeWithReason: (t, string) => unit = "close"
 @send external closeWithCodeAndReason: (t, int, string) => unit = "close"
 
+module MessageEvent = {
+  type t
+
+  @get external data: t => string = "data"
+  @get external lastEventId: t => string = "lastEventId"
+}
+
 @send
 external on: (
   t,
   @string
   [
-    | @as("open") #open_(unit => unit)
-    | #close((int, string) => unit)
-    | #message(string => unit)
-    | #error(Dom.errorEvent => unit)
+    | @as("open") #open_((. unit) => unit)
+    | #close((. int, string) => unit)
+    | #message((. MessageEvent.t) => unit)
+    | #error((. Dom.errorEvent) => unit)
   ],
 ) => unit = "addEventListener"
+
+@send
+external off: (
+  t,
+  @string
+  [
+    | @as("open") #open_((. unit) => unit)
+    | #close((. int, string) => unit)
+    | #message((. MessageEvent.t) => unit)
+    | #error((. Dom.errorEvent) => unit)
+  ],
+) => unit = "removeEventListener"
 
 @get external binaryType: t => @string [#blob | #arraybuffer] = "binaryType"
 @set external setBinaryType: (t, @string [#blob | #arraybuffer]) => unit = "binaryType"
@@ -28,6 +47,6 @@ external on: (
 
 @get external protocol: t => string = "protocol"
 
-@get external readyState: t => @int [#connecting | #open_ | #closing | #closed] = "readyState"
+@get external readyState: t => @int [#0 | #1 | #2 | #3] = "readyState"
 
 @get external url: t => string = "url"

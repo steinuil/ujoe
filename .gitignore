@@ -28,3 +28,5 @@ yarn-error.log
 /node_modules/
 /lib/
 /www/js/
+
+*.js

@@ -5,8 +5,28 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>client</title>
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background-image: url(./snw_bg.jpg);
+        background-size: cover;
+
+        display: flex;
+      }
+
+      #empty {
+        width: 50%;
+      }
+
+      #root {
+        height: 100vh;
+        flex-grow: 1;
+      }
+    </style>
   </head>
   <body>
+    <div id="empty"></div>
     <div id="root"></div>
     <script src="./js/Main.js"></script>
   </body>

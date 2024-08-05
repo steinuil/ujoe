@@ -16,6 +16,13 @@ module Message = {
     tags: option<Js.Dict.t<option<string>>>,
   }
 
+  let make = (~prefix=?, ~tags=?, command, params) => {
+    command: command,
+    params: params,
+    prefix: prefix,
+    tags: tags,
+  }
+
   let splitInTwo = (string, ~substring) =>
     switch Js.String.splitAtMost(substring, ~limit=2, string) {
     | [before, after] => Some((before, after))
@@ -110,6 +117,14 @@ module Message = {
     }
   }
 
+  let escapeTagValue = value =>
+    value
+    ->Js.String2.replaceByRe(%re("/\u005C/ug"), "\\\\")
+    ->Js.String2.replaceByRe(%re("/\;/g"), "\\:")
+    ->Js.String2.replaceByRe(%re("/\u000D/ug"), "\\r")
+    ->Js.String2.replaceByRe(%re("/\u000A/ug"), "\\n")
+    ->Js.String2.replaceByRe(%re("/\u0020/ug"), "\\s")
+
   let toString = ({command, params, prefix, tags}) => {
     let tags = switch tags {
     | None => ""
@@ -151,4 +166,118 @@ module Message = {
 
     tags ++ prefix ++ command ++ params
   }
+
+  let user = (username, realname) => make("USER", [username, "0", "*", realname])
+
+  let pass = password => make("PASS", [password])
+
+  let nick = nick => make("NICK", [nick])
+
+  let ping = srvs => make("PING", srvs)
+
+  let pong = srvs => make("PONG", srvs)
+
+  let quit = msg => make("QUIT", [msg])
+
+  let join = channel => make("JOIN", [channel])
+
+  let privmsg = (target, message) => make("PRIVMSG", [target, message])
+}
+
+type message =
+  | Quit({user: Message.nickname, reason: option<string>})
+  | Join({user: Message.nickname, channel: string})
+  | Part({user: Message.nickname, channel: string, reason: option<string>})
+  | Privmsg({source: Message.prefix, target: string, message: string})
+
+let toMessage = (msg: Message.t) =>
+  switch msg {
+  | {command: "QUIT", prefix: Some(Nickname(user)), params: [reason], _} =>
+    Some(Quit({user: user, reason: Some(reason)}))
+  | {command: "QUIT", prefix: Some(Nickname(user)), params: [], _} =>
+    Some(Quit({user: user, reason: None}))
+
+  | {command: "JOIN", prefix: Some(Nickname(user)), params: [channel], _} =>
+    Some(Join({user: user, channel: channel}))
+
+  | {command: "PART", prefix: Some(Nickname(user)), params: [channel], _} =>
+    Some(Part({user: user, channel: channel, reason: None}))
+  | {command: "PART", prefix: Some(Nickname(user)), params: [channel, reason], _} =>
+    Some(Part({user: user, channel: channel, reason: Some(reason)}))
+
+  | {command: "PRIVMSG", prefix: Some(source), params: [target, message]} =>
+    Some(Privmsg({source: source, target: target, message: message}))
+
+  | _ => None
+  }
+
+// type conn = {
+//   sock: WebSocket.t,
+//   url: string,
+//   nick: string,
+//   realname: option<string>,
+//   channel: string,
+// }
+
+let connect = (~channel, ~nick, ~realname=?, url) => {
+  let sock = WebSocket.make(url)
+
+  let send = msg => sock->WebSocket.send(msg->Message.toString)
+
+  let connectPromise = Promise.make((resolve, reject) => {
+    let handleMessage = (. msg) => {
+      let msg = msg->WebSocket.MessageEvent.data->Message.parse
+
+      switch msg.command {
+      | "PING" => Message.pong(msg.params)->send
+      | "376" | "422" => {
+          Message.join(channel)->send
+
+          // resolve(. {
+          //   sock: sock,
+          //   url: url,
+          //   nick: nick,
+          //   realname: realname,
+          //   channel: channel,
+          // })
+
+          resolve(. ignore())
+        }
+      | _ => ()
+      }
+    }
+
+    sock->WebSocket.on(#message(handleMessage))
+
+    let rec login = (. ()) => {
+      Message.user(nick, realname->Belt.Option.getWithDefault(nick))->send
+      Message.nick(nick)->send
+
+      sock->WebSocket.off(#open_(login))
+    }
+
+    switch sock->WebSocket.readyState {
+    | #2 | #3 => reject(. Error("failed to connect to socket"))
+    | #1 => login(.)
+    | #0 => sock->WebSocket.on(#open_(login))
+    }
+  })
+
+  (sock, connectPromise)
+}
+
+let onMessage = (sock, cb) => {
+  sock->WebSocket.on(
+    #message(
+      (. msg) => {
+        let msg = msg->WebSocket.MessageEvent.data->Message.parse
+
+        cb(. msg)
+      },
+    ),
+  )
+}
+
+let offMessage = (sock, cb) => {
+  sock->WebSocket.off(#message(cb))
 }

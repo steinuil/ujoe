@@ -18,6 +18,15 @@ let runSplitInTwo = () => {
   )
 }
 
+let runEscapeByTagValue = () => {
+  Tests.run(
+    __POS_OF__("stuff is correctly escaped"),
+    escapeTagValue(";\r \n\\"),
+    eq,
+    "\\:\\r\\s\\n\\\\",
+  )
+}
+
 let runParse = () => {
   Tests.run(
     __POS_OF__("no params"),
@@ -116,6 +125,41 @@ let runParse = () => {
       tags: None,
     },
   )
+
+  Tests.run(
+    __POS_OF__("params test from irc horse 1"),
+    parse(":irc.example.com CAP * LIST :").params,
+    eq,
+    ["*", "LIST", ""],
+  )
+
+  Tests.run(
+    __POS_OF__("params test from irc horse 1"),
+    parse("CAP * LS :multi-prefix sasl").params,
+    eq,
+    ["*", "LS", "multi-prefix sasl"],
+  )
+
+  Tests.run(
+    __POS_OF__("params test from irc horse 1"),
+    parse("CAP REQ :sasl message-tags foo").params,
+    eq,
+    ["REQ", "sasl message-tags foo"],
+  )
+
+  Tests.run(
+    __POS_OF__("params test from irc horse 1"),
+    parse(":dan!d@localhost PRIVMSG #chan :Hey!").params,
+    eq,
+    ["#chan", "Hey!"],
+  )
+
+  Tests.run(
+    __POS_OF__("params test from irc horse 1"),
+    parse(":dan!d@localhost PRIVMSG #chan ::-)").params,
+    eq,
+    ["#chan", ":-)"],
+  )
 }
 
 let runToString = () => {
@@ -162,4 +206,5 @@ let run = () => {
   runSplitInTwo()
   runParse()
   runToString()
+  runEscapeByTagValue()
 }
